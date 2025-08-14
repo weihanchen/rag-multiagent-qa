@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # Ollama 本地模型服務
+  ollama:
+    image: ollama/ollama:latest
+    container_name: rag-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # 生產環境資源限制
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+  # Python RAG 應用
+  rag-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rag-app
+    ports:
+      - "8501:8501"
+    volumes:
+      # 生產環境使用新的數據目錄結構
+      - ./data/vector_store:/app/vector_store
+      - ./data/uploads:/app/uploads
+      - ./data/workspace:/app/workspace
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama2:7b
+      - VECTOR_STORE_TYPE=faiss
+      - VECTOR_STORE_PATH=/app/vector_store
+      - UPLOAD_PATH=/app/uploads
+      - WORKSPACE_PATH=/app/workspace
+      - MAX_TOKENS=2000
+      - TEMPERATURE=0.3
+      - CHUNK_SIZE=500
+      - CHUNK_OVERLAP=100
+      - ENABLE_HUMAN_INPUT=false
+      - MAX_ITERATIONS=10
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # 生產環境資源限制
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+
+volumes:
+  ollama_data:
+    driver: local

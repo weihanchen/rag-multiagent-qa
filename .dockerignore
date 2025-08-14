@@ -1,0 +1,73 @@
+# Git 相關
+.git
+.gitignore
+
+# Python 相關
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+
+# 虛擬環境
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE 相關
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系統
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 項目特定
+vector_store/
+uploads/
+workspace/
+*.faiss
+*.index
+chroma_db/
+.env
+.env.local
+.env.*.local
+
+# Docker 相關
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 文檔
+README.md
+OLLAMA_SETUP.md
+env.example
+
+# 測試文件
+test_ollama.py
+example_usage.py

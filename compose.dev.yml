@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  rag-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      # 掛載原始碼，支持熱重載
+      - .:/app
+      - /app/venv  # 排除虛擬環境
+      - /app/__pycache__  # 排除緩存
+      - /app/.git  # 排除 git 目錄
+      # 掛載數據目錄
+      - ./data:/app/data
+    depends_on:
+      - ollama
+    networks:
+      - rag-network
+    # 開發環境啟用熱重載
+    command: streamlit run app.py --server.port 8501 --server.address 0.0.0.0 --server.runOnSave true
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - rag-network
+    # 開發環境資源限制較寬鬆
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+volumes:
+  ollama_data:
+
+networks:
+  rag-network:
+    driver: bridge

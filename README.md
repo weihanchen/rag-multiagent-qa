@@ -1,10 +1,10 @@
 # RAG 多代理文件問答系統 - Docker 化部署版
 
-這是一個基於AutoGen和LlamaIndex的智能文件問答系統，能夠處理PDF和Markdown文件，並通過多個AI代理進行智能問答。**使用 Docker 容器化部署，包含 Ollama 本地模型，無需 API 密鑰，完全本地運行！**
+這是一個基於AutoGen和LlamaIndex的智能文件問答系統，能夠處理PDF和Markdown文件，並通過多個AI代理進行智能問答。
 
 ## 特色功能
 
-- 🐳 **Docker 一鍵部署**
+- 🐳 Docker 一鍵部署
 - 🚀 多代理協作處理
 - 📚 支持PDF和Markdown格式
 - 🔍 智能文檔檢索
@@ -107,7 +107,7 @@ tar -czf data_backup.tar.gz data/
 docker exec rag-ollama ollama list > models_backup.txt
 ```
 
-## �� 開發指南
+## 開發指南
 
 ### 開發環境設置
 

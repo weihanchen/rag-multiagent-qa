@@ -8,11 +8,8 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      # 掛載原始碼，支持熱重載
+      # 直接掛載整個項目目錄，支持熱重載
       - .:/app
-      - /app/venv  # 排除虛擬環境
-      - /app/__pycache__  # 排除緩存
-      - /app/.git  # 排除 git 目錄
       # 掛載數據目錄
       - ./data:/app/data
     depends_on:
@@ -21,6 +18,8 @@ services:
       - rag-network
     # 開發環境啟用熱重載
     command: streamlit run app.py --server.port 8501 --server.address 0.0.0.0 --server.runOnSave true
+    # 設置用戶權限，支持 Git 操作
+    user: "0:0"  # 使用 root 用戶，確保有足夠權限
 
   ollama:
     image: ollama/ollama:latest

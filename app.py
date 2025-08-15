@@ -198,41 +198,93 @@ def main():
             )
             
             if st.button("🔍 提問") and question:
-                with st.spinner("正在思考中..."):
-                    # 使用代理管理器回答問題
-                    answer = st.session_state.agent_manager.ask_question(question)
+                # 創建進度條和狀態顯示
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                try:
+                    # 設置超時處理
+                    import signal
                     
-                    if answer.get("success", False):
-                        st.success("✅ 找到答案！")
+                    def timeout_handler(signum, frame):
+                        raise TimeoutError("查詢超時")
+                    
+                    # 設置進度更新
+                    progress_bar.progress(25)
+                    status_text.text("🔍 正在檢索相關文檔...")
+                    
+                    # 使用代理管理器回答問題，設置超時
+                    try:
+                        # 在 Unix 系統上設置信號處理器
+                        if hasattr(signal, 'SIGALRM'):
+                            signal.signal(signal.SIGALRM, timeout_handler)
+                            signal.alarm(120)  # 2分鐘超時
                         
-                        # 顯示答案
-                        st.subheader("📝 答案")
-                        st.write(answer["answer"])
+                        progress_bar.progress(50)
+                        status_text.text("🤖 正在生成答案...")
                         
-                        # 顯示源節點信息
-                        if answer.get("source_nodes"):
-                            st.subheader("📚 參考來源")
-                            for i, source in enumerate(answer["source_nodes"]):
-                                with st.expander(f"來源 {i+1}"):
-                                    st.write(f"**內容**: {source['text']}")
-                                    if source.get('metadata'):
-                                        st.write(f"**元數據**: {source['metadata']}")
-                                    if source.get('score'):
-                                        st.write(f"**相關性分數**: {source.get('score', 0):.3f}")
+                        answer = st.session_state.agent_manager.ask_question(question)
                         
-                        # 保存到對話歷史
-                        if 'chat_history' not in st.session_state:
-                            st.session_state.chat_history = []
+                        # 取消超時警報
+                        if hasattr(signal, 'SIGALRM'):
+                            signal.alarm(0)
                         
-                        st.session_state.chat_history.append({
-                            "question": question,
-                            "answer": answer,
-                            "timestamp": time.time()
-                        })
+                        progress_bar.progress(100)
+                        status_text.text("✅ 完成！")
                         
-                    else:
-                        error_msg = answer.get('error', '未知錯誤')
-                        st.error(f"❌ 回答失敗: {error_msg}")
+                        if answer.get("success", False):
+                            st.success("✅ 找到答案！")
+                            
+                            # 顯示答案
+                            st.subheader("📝 答案")
+                            st.write(answer["answer"])
+                            
+                            # 顯示源節點信息
+                            if answer.get("source_nodes"):
+                                st.subheader("📚 參考來源")
+                                for i, source in enumerate(answer["source_nodes"]):
+                                    with st.expander(f"來源 {i+1}"):
+                                        st.write(f"**內容**: {source['text']}")
+                                        if source.get('metadata'):
+                                            st.write(f"**元數據**: {source['metadata']}")
+                                        if source.get('score'):
+                                            st.write(f"**相關性分數**: {source.get('score', 0):.3f}")
+                            
+                            # 保存到對話歷史
+                            if 'chat_history' not in st.session_state:
+                                st.session_state.chat_history = []
+                            
+                            st.session_state.chat_history.append({
+                                "question": question,
+                                "answer": answer,
+                                "timestamp": time.time()
+                            })
+                            
+                        else:
+                            error_msg = answer.get('error', '未知錯誤')
+                            st.error(f"❌ 回答失敗: {error_msg}")
+                            
+                            # 提供超時問題的解決建議
+                            if "超時" in error_msg or "timeout" in error_msg.lower():
+                                st.info("💡 **超時問題解決建議：**")
+                                st.write("1. 檢查 Ollama 服務是否正常運行")
+                                st.write("2. 嘗試使用較小的模型（如 gemma:2b）")
+                                st.write("3. 檢查網絡連接和服務響應速度")
+                                st.write("4. 可以嘗試重新處理文檔或重啟系統")
+                            
+                    except TimeoutError:
+                        st.error("⏰ 查詢超時！請檢查 Ollama 服務狀態或嘗試使用較小的模型。")
+                        st.info("💡 **建議：** 檢查 Ollama 服務是否正常運行，或嘗試重新啟動服務。")
+                    except Exception as e:
+                        st.error(f"❌ 發生未預期的錯誤: {str(e)}")
+                        st.info("💡 **建議：** 請檢查系統日誌或聯繫技術支持。")
+                        
+                except Exception as e:
+                    st.error(f"❌ 系統錯誤: {str(e)}")
+                finally:
+                    # 清理進度條
+                    progress_bar.empty()
+                    status_text.empty()
             
             # 顯示對話歷史
             if 'chat_history' in st.session_state and st.session_state.chat_history:

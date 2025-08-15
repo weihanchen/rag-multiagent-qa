@@ -27,6 +27,9 @@ chmod +x dev.sh
 # 打開工作目錄到/app底下
 cp .env.example .env
 
+# 啟動服務
+streamlit run app.py --server.port 8501 --server.address 0.0.0.0 --server.runOnSave true --server.fileWatcherType poll
+
 # Windows PowerShell
 .\dev.ps1
 ```

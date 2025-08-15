@@ -21,6 +21,11 @@ class Config:
     CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
     CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "100"))
     
+    # 超時配置
+    REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "120.0"))  # 請求超時時間（秒）
+    LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "90.0"))          # LLM 響應超時時間（秒）
+    QUERY_TIMEOUT = float(os.getenv("QUERY_TIMEOUT", "60.0"))      # 查詢引擎超時時間（秒）
+    
     # 代理配置
     ENABLE_HUMAN_INPUT = os.getenv("ENABLE_HUMAN_INPUT", "false").lower() == "true"
     MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", "10"))
@@ -53,10 +58,12 @@ class Config:
             "config_list": [{
                 "model": cls.OLLAMA_MODEL,
                 "base_url": cls.OLLAMA_BASE_URL,
-                "api_key": "ollama"  # 本地服務無需真實 API key
+                "api_key": "ollama",  # 本地服務無需真實 API key
+                "timeout": cls.LLM_TIMEOUT
             }],
             "temperature": cls.TEMPERATURE,
-            "max_tokens": cls.MAX_TOKENS
+            "max_tokens": cls.MAX_TOKENS,
+            "timeout": cls.LLM_TIMEOUT
         }
     
     @classmethod
@@ -64,5 +71,6 @@ class Config:
         """返回 Ollama 嵌入模型配置"""
         return {
             "model": cls.OLLAMA_MODEL,
-            "base_url": cls.OLLAMA_BASE_URL
+            "base_url": cls.OLLAMA_BASE_URL,
+            "timeout": cls.REQUEST_TIMEOUT
         }

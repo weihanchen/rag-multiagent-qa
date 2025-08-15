@@ -145,7 +145,8 @@ def main():
             # 顯示系統狀態
             print("\n📊 系統狀態:")
             status = agent_manager.get_system_status()
-            print(f"   - OpenAI模型: {status['config']['openai_model']}")
+            print(f"   - 模型提供者: {status['config']['model_provider']}")
+            print(f"   - 模型名稱: {status['config']['model_name']}")
             print(f"   - 向量存儲類型: {status['config']['vector_store_type']}")
             print(f"   - 向量索引狀態: {status['vector_index']['status']}")
             
@@ -170,7 +171,7 @@ def main():
     print("\n" + "=" * 50)
     print("🎉 示例運行完成！")
     print("\n💡 提示:")
-    print("1. 檢查 .env 文件中的 OpenAI API 密鑰設置")
+    print("1. 確保 Ollama 服務正在運行")
     print("2. 運行 'streamlit run app.py' 啟動Web界面")
     print("3. 上傳自己的文檔進行測試")
 

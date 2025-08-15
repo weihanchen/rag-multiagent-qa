@@ -1,12 +1,43 @@
 import autogen
 from typing import List, Dict, Any, Optional
-from llama_index.core import VectorStoreIndex
+from llama_index.core import VectorStoreIndex, Document
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.base.embeddings.base import BaseEmbedding
+from llama_index.llms.ollama import Ollama
 from pydantic import Field
 from config import Config
 from logger_config import get_logger
+
+# 使用自定義實現，繼承自 BaseEmbedding
+class CustomOllamaEmbedding(BaseEmbedding):
+    model_name: str = Field(description="Ollama 模型名稱")
+    base_url: str = Field(description="Ollama 服務 URL")
+    
+    def _get_text_embedding(self, text: str) -> List[float]:
+        try:
+            import requests
+            response = requests.post(
+                f"{self.base_url}/api/embeddings",
+                json={"model": self.model_name, "prompt": text}
+            )
+            if response.status_code == 200:
+                return response.json()["embedding"]
+            else:
+                import numpy as np
+                return list(np.random.rand(384))
+        except Exception as e:
+            import numpy as np
+            return list(np.random.rand(384))
+    
+    def _get_query_embedding(self, query: str) -> List[float]:
+        return self._get_text_embedding(query)
+    
+    def _aget_text_embedding(self, text: str) -> List[float]:
+        return self._get_text_embedding(text)
+    
+    def _aget_query_embedding(self, query: str) -> List[float]:
+        return self._get_text_embedding(query)
 
 class QAAgent:
     """問答代理 - 負責處理用戶問題並從文檔中檢索答案"""
@@ -42,49 +73,12 @@ class QAAgent:
     def _initialize_vector_store(self):
         """初始化向量存儲和查詢引擎"""
         try:
-            # 使用 Ollama 嵌入模型
-            import requests
-            import numpy as np
-            
-            # 使用自定義實現，繼承自 BaseEmbedding
-            class CustomOllamaEmbedding(BaseEmbedding):
-                model_name: str = Field(description="Ollama 模型名稱")
-                base_url: str = Field(description="Ollama 服務 URL")
-                
-                def _get_text_embedding(self, text: str) -> List[float]:
-                    try:
-                        response = requests.post(
-                            f"{self.base_url}/api/embeddings",
-                            json={"model": self.model_name, "prompt": text}
-                        )
-                        if response.status_code == 200:
-                            return response.json()["embedding"]
-                        else:
-                            # 注意：這裡無法直接使用 self.logger，因為在內部類中
-                            # 我們將在外部處理這個警告
-                            return list(np.random.rand(384))
-                    except Exception as e:
-                        # 注意：這裡無法直接使用 self.logger，因為在內部類中
-                        # 我們將在外部處理這個錯誤
-                        return list(np.random.rand(384))
-                
-                def _get_query_embedding(self, query: str) -> List[float]:
-                    return self._get_text_embedding(query)
-                
-                def _aget_text_embedding(self, text: str) -> List[float]:
-                    return self._get_text_embedding(text)
-                
-                def _aget_query_embedding(self, query: str) -> List[float]:
-                    return self._get_text_embedding(query)
-            
+            # 創建嵌入模型實例
             embed_model = CustomOllamaEmbedding(
                 model_name=self.config.OLLAMA_MODEL,
                 base_url=self.config.OLLAMA_BASE_URL
             )
             self.logger.info("使用自定義 OllamaEmbedding 實現")
-            
-            # 自定義嵌入模型，使用基本配置
-            self.logger.info("使用自定義嵌入模型配置")
             
             # 嘗試載入現有的向量索引
             try:
@@ -117,12 +111,20 @@ class QAAgent:
                 similarity_top_k=5  # 檢索前5個最相關的chunks
             )
             
-            # 創建查詢引擎
-            self.query_engine = RetrieverQueryEngine.from_args(
-                retriever=retriever
+            # 創建 Ollama LLM 實例，使用配置的超時設置
+            llm = Ollama(
+                model=self.config.OLLAMA_MODEL,
+                base_url=self.config.OLLAMA_BASE_URL,
+                request_timeout=self.config.LLM_TIMEOUT
             )
             
-            self.logger.info("查詢引擎設置完成")
+            # 創建查詢引擎，明確指定 LLM
+            self.query_engine = RetrieverQueryEngine.from_args(
+                retriever=retriever,
+                llm=llm
+            )
+            
+            self.logger.info(f"查詢引擎設置完成，使用 Ollama LLM，超時設置: {self.config.LLM_TIMEOUT}秒")
             
         except Exception as e:
             self.logger.error(f"設置查詢引擎時發生錯誤：{str(e)}")
@@ -130,8 +132,6 @@ class QAAgent:
     def create_index_from_chunks(self, chunks: List[Dict[str, Any]]):
         """從處理後的chunks創建向量索引"""
         try:
-            from llama_index.core import Document
-            
             # 轉換為Document對象
             documents = []
             for chunk in chunks:
@@ -141,44 +141,12 @@ class QAAgent:
                 )
                 documents.append(doc)
             
-            # 創建向量索引
-            import requests
-            import numpy as np
-            
-            # 使用自定義實現，繼承自 BaseEmbedding
-            class CustomOllamaEmbedding(BaseEmbedding):
-                model_name: str = Field(description="Ollama 模型名稱")
-                base_url: str = Field(description="Ollama 服務 URL")
-                
-                def _get_text_embedding(self, text: str) -> List[float]:
-                    try:
-                        response = requests.post(
-                            f"{self.base_url}/api/embeddings",
-                            json={"model": self.model_name, "prompt": text}
-                        )
-                        if response.status_code == 200:
-                            return response.json()["embedding"]
-                        else:
-                            print(f"警告：Ollama 嵌入失敗，使用備用向量")
-                            return list(np.random.rand(384))
-                    except Exception as e:
-                        print(f"嵌入請求失敗：{str(e)}，使用備用向量")
-                        return list(np.random.rand(384))
-                
-                def _get_query_embedding(self, query: str) -> List[float]:
-                    return self._get_text_embedding(query)
-                
-                def _aget_text_embedding(self, text: str) -> List[float]:
-                    return self._get_text_embedding(text)
-                
-                def _aget_query_embedding(self, query: str) -> List[float]:
-                    return self._get_text_embedding(query)
-            
+            # 創建自定義嵌入模型
             embed_model = CustomOllamaEmbedding(
                 model_name=self.config.OLLAMA_MODEL,
                 base_url=self.config.OLLAMA_BASE_URL
             )
-            self.logger.info(f"使用自定義 OllamaEmbedding 實現 - model_name: self.config.OLLAMA_MODEL")
+            self.logger.info(f"使用自定義 OllamaEmbedding 實現 - model_name: {self.config.OLLAMA_MODEL}")
             
             # 自定義嵌入模型，使用基本配置
             self.logger.info("使用自定義嵌入模型配置")
@@ -234,8 +202,36 @@ class QAAgent:
                     "error": "查詢引擎未初始化，請先處理文檔"
                 }
             
-            # 使用查詢引擎獲取答案
-            response = self.query_engine.query(question)
+            self.logger.info(f"開始處理問題: {question[:50]}...")
+            
+            # 使用查詢引擎獲取答案，設置超時
+            import signal
+            
+            def timeout_handler(signum, frame):
+                raise TimeoutError(f"查詢超時（{self.config.QUERY_TIMEOUT}秒）")
+            
+            # 設置信號處理器（僅在 Unix 系統上）
+            try:
+                signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(int(self.config.QUERY_TIMEOUT))
+                
+                # 使用查詢引擎獲取答案
+                response = self.query_engine.query(question)
+                
+                # 取消超時警報
+                signal.alarm(0)
+                
+            except TimeoutError as e:
+                signal.alarm(0)  # 確保取消警報
+                return {
+                    "success": False,
+                    "error": f"查詢超時：{str(e)}"
+                }
+            except Exception as e:
+                signal.alarm(0)  # 確保取消警報
+                raise e
+            
+            self.logger.info("查詢完成，正在處理響應...")
             
             return {
                 "success": True,
@@ -252,6 +248,7 @@ class QAAgent:
             }
             
         except Exception as e:
+            self.logger.error(f"查詢時發生錯誤：{str(e)}")
             return {
                 "success": False,
                 "error": f"查詢時發生錯誤：{str(e)}"

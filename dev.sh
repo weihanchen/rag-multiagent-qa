@@ -38,7 +38,7 @@ show_help() {
 # 創建必要的目錄
 create_directories() {
     echo -e "${BLUE}📁 創建必要的目錄...${NC}"
-    mkdir -p data/vector_store data/uploads data/workspace data/ollama
+    mkdir -p data/vector_store data/uploads data/workspace data/ollama data/logs
     echo -e "${GREEN}✅ 目錄創建完成${NC}"
 }
 

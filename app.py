@@ -203,31 +203,16 @@ def main():
                 status_text = st.empty()
                 
                 try:
-                    # 設置超時處理
-                    import signal
-                    
-                    def timeout_handler(signum, frame):
-                        raise TimeoutError("查詢超時")
-                    
                     # 設置進度更新
                     progress_bar.progress(25)
                     status_text.text("🔍 正在檢索相關文檔...")
                     
-                    # 使用代理管理器回答問題，設置超時
+                    # 使用代理管理器回答問題
                     try:
-                        # 在 Unix 系統上設置信號處理器
-                        if hasattr(signal, 'SIGALRM'):
-                            signal.signal(signal.SIGALRM, timeout_handler)
-                            signal.alarm(120)  # 2分鐘超時
-                        
                         progress_bar.progress(50)
                         status_text.text("🤖 正在生成答案...")
                         
                         answer = st.session_state.agent_manager.ask_question(question)
-                        
-                        # 取消超時警報
-                        if hasattr(signal, 'SIGALRM'):
-                            signal.alarm(0)
                         
                         progress_bar.progress(100)
                         status_text.text("✅ 完成！")
@@ -264,7 +249,7 @@ def main():
                             error_msg = answer.get('error', '未知錯誤')
                             st.error(f"❌ 回答失敗: {error_msg}")
                             
-                            # 提供超時問題的解決建議
+                            # 提供錯誤問題的解決建議
                             if "超時" in error_msg or "timeout" in error_msg.lower():
                                 st.info("💡 **超時問題解決建議：**")
                                 st.write("1. 檢查 Ollama 服務是否正常運行")
@@ -272,9 +257,6 @@ def main():
                                 st.write("3. 檢查網絡連接和服務響應速度")
                                 st.write("4. 可以嘗試重新處理文檔或重啟系統")
                             
-                    except TimeoutError:
-                        st.error("⏰ 查詢超時！請檢查 Ollama 服務狀態或嘗試使用較小的模型。")
-                        st.info("💡 **建議：** 檢查 Ollama 服務是否正常運行，或嘗試重新啟動服務。")
                     except Exception as e:
                         st.error(f"❌ 發生未預期的錯誤: {str(e)}")
                         st.info("💡 **建議：** 請檢查系統日誌或聯繫技術支持。")

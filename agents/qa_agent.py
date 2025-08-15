@@ -83,8 +83,12 @@ class QAAgent:
             # 嘗試載入現有的向量索引
             try:
                 # 載入時也指定嵌入模型
-                self.index = VectorStoreIndex.load(
-                    self.vector_store_path,
+                from llama_index.core.storage.storage_context import StorageContext
+                from llama_index.core.indices.loading import load_index_from_storage
+                
+                storage_context = StorageContext.from_defaults(persist_dir=self.vector_store_path)
+                self.index = load_index_from_storage(
+                    storage_context,
                     embed_model=embed_model
                 )
                 self.logger.info("成功載入現有向量索引")
@@ -204,48 +208,31 @@ class QAAgent:
             
             self.logger.info(f"開始處理問題: {question[:50]}...")
             
-            # 使用查詢引擎獲取答案，設置超時
-            import signal
-            
-            def timeout_handler(signum, frame):
-                raise TimeoutError(f"查詢超時（{self.config.QUERY_TIMEOUT}秒）")
-            
-            # 設置信號處理器（僅在 Unix 系統上）
+            # 使用查詢引擎獲取答案（移除信號超時處理，因為在 Streamlit 中不適用）
             try:
-                signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(int(self.config.QUERY_TIMEOUT))
-                
-                # 使用查詢引擎獲取答案
                 response = self.query_engine.query(question)
+                self.logger.info("查詢完成，正在處理響應...")
                 
-                # 取消超時警報
-                signal.alarm(0)
+                return {
+                    "success": True,
+                    "answer": str(response),
+                    "source_nodes": [
+                        {
+                            "text": node.text,
+                            "metadata": node.metadata
+                        }
+                        for node in response.source_nodes
+                    ] if hasattr(response, 'source_nodes') else [],
+                    "model_provider": "ollama",
+                    "model_name": self.config.OLLAMA_MODEL
+                }
                 
-            except TimeoutError as e:
-                signal.alarm(0)  # 確保取消警報
+            except Exception as e:
+                self.logger.error(f"查詢引擎執行失敗：{str(e)}")
                 return {
                     "success": False,
-                    "error": f"查詢超時：{str(e)}"
+                    "error": f"查詢引擎執行失敗：{str(e)}"
                 }
-            except Exception as e:
-                signal.alarm(0)  # 確保取消警報
-                raise e
-            
-            self.logger.info("查詢完成，正在處理響應...")
-            
-            return {
-                "success": True,
-                "answer": str(response),
-                "source_nodes": [
-                    {
-                        "text": node.text,
-                        "metadata": node.metadata
-                    }
-                    for node in response.source_nodes
-                ] if hasattr(response, 'source_nodes') else [],
-                "model_provider": "ollama",
-                "model_name": self.config.OLLAMA_MODEL
-            }
             
         except Exception as e:
             self.logger.error(f"查詢時發生錯誤：{str(e)}")

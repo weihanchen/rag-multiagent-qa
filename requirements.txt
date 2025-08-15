@@ -1,15 +1,13 @@
-pyautogen==0.10.0
+autogen==0.9.8.post1
 llama-index==0.13.1
-llama-index-vector-stores-faiss>=0.1.0         
-llama-index-vector-stores-chroma>=0.1.0        
-llama-index-readers-file>=0.1.0               
-llama-index-readers-markdown>=0.1.0            
-llama-index-readers-pdf>=0.1.0                 
-faiss-cpu>=1.7.4                              
-chromadb>=0.4.0                               
-python-dotenv>=1.0.0                          
+llama-index-vector-stores-faiss==0.5.0         
+llama-index-vector-stores-chroma==0.5.0        
+llama-index-readers-file==0.5.1 
+faiss-cpu==1.12.0                             
+chromadb==1.0.17                               
+python-dotenv==1.1.1  
 streamlit==1.48.1                             
-pypdf==6.0.0
+pypdf==5.1.0  # 降級到兼容版本，滿足 llama-index-readers-file 要求
 numpy==2.3.2
-pandas==2.3.1
-requests>=2.31.0                               # 用於 Ollama API 調用
+pandas==2.2.3  # 升級到 2.2.x 最新版本，滿足 llama-index-readers-file 要求
+requests==2.32.4

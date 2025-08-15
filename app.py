@@ -75,7 +75,7 @@ def main():
             
             # 顯示配置信息
             st.subheader("📋 當前配置")
-            st.write(f"**模型**: {config.OPENAI_MODEL}")
+            st.write(f"**模型**: {config.OLLAMA_MODEL}")
             st.write(f"**向量存儲**: {config.VECTOR_STORE_TYPE}")
             st.write(f"**Chunk大小**: {config.CHUNK_SIZE}")
             st.write(f"**最大Token**: {config.MAX_TOKENS}")
@@ -87,28 +87,38 @@ def main():
         
         # 顯示系統狀態
         with st.expander("系統狀態", expanded=False):
-            manager = MultiAgentManager() # Assuming manager is available in st.session_state
-            status = manager.get_system_status()
-            if "error" not in status:
-                config = status.get("config", {})
-                st.write(f"**模型提供者**: {config.get('model_provider', 'N/A')}")
-                st.write(f"**模型名稱**: {config.get('model_name', 'N/A')}")
-                st.write(f"**向量存儲**: {config.get('vector_store_type', 'N/A')}")
-                st.write(f"**Chunk大小**: {config.get('chunk_size', 'N/A')}")
-                st.write(f"**最大Token**: {config.get('max_tokens', 'N/A')}")
+            try:
+                if 'agent_manager' in st.session_state:
+                    manager = st.session_state.agent_manager
+                else:
+                    manager = MultiAgentManager()
+                    st.session_state.agent_manager = manager
                 
-                agents = status.get("agents", {})
-                st.write("**代理狀態**:")
-                for agent_name, agent_status in agents.items():
-                    st.write(f"   - {agent_name}: {agent_status}")
+                status = manager.get_system_status()
                 
-                vector_index = status.get("vector_index", {})
-                st.write(f"**向量索引**: {vector_index.get('status', 'N/A')}")
-                if vector_index.get("status") == "已初始化":
-                    st.write(f"   - 文檔數量: {vector_index.get('document_count', 'N/A')}")
-                    st.write(f"   - 存儲路徑: {vector_index.get('vector_store_path', 'N/A')}")
-            else:
-                st.error(f"獲取系統狀態失敗: {status['error']}")
+                if "error" not in status:
+                    config = status.get("config", {})
+                    st.write(f"**模型提供者**: {config.get('model_provider', 'N/A')}")
+                    st.write(f"**模型名稱**: {config.get('model_name', 'N/A')}")
+                    st.write(f"**向量存儲**: {config.get('vector_store_type', 'N/A')}")
+                    st.write(f"**Chunk大小**: {config.get('chunk_size', 'N/A')}")
+                    st.write(f"**最大Token**: {config.get('max_tokens', 'N/A')}")
+                    
+                    agents = status.get("agents", {})
+                    st.write("**代理狀態**:")
+                    for agent_name, agent_status in agents.items():
+                        st.write(f"   - {agent_name}: {agent_status}")
+                    
+                    vector_index = status.get("vector_index", {})
+                    st.write(f"**向量索引**: {vector_index.get('status', 'N/A')}")
+                    if vector_index.get("status") == "已初始化":
+                        st.write(f"   - 文檔數量: {vector_index.get('document_count', 'N/A')}")
+                        st.write(f"   - 存儲路徑: {vector_index.get('vector_store_path', 'N/A')}")
+                    else:
+                        st.error(f"獲取系統狀態失敗: {status['error']}")
+                    
+            except Exception as e:
+                st.error(f"獲取系統狀態時發生錯誤: {str(e)}")
         
         # 重置按鈕
         if st.button("🔄 重置系統"):
@@ -158,7 +168,7 @@ def main():
                     # 處理文件
                     result = st.session_state.agent_manager.process_documents(file_paths)
                     
-                    if result["success"]:
+                    if result.get("success", False):
                         st.success(f"✅ 文件處理完成！")
                         st.write(f"處理了 {result['documents_processed']} 個文檔")
                         st.write(f"創建了 {result['chunks_created']} 個chunks")
@@ -170,7 +180,8 @@ def main():
                         
                         st.session_state.files_processed = True
                     else:
-                        st.error(f"❌ 文件處理失敗: {result['error']}")
+                        error_msg = result.get('error', '未知錯誤')
+                        st.error(f"❌ 文件處理失敗: {error_msg}")
     
     with col2:
         st.header("💬 智能問答")
@@ -191,17 +202,12 @@ def main():
                     # 使用代理管理器回答問題
                     answer = st.session_state.agent_manager.ask_question(question)
                     
-                    if answer["success"]:
+                    if answer.get("success", False):
                         st.success("✅ 找到答案！")
                         
                         # 顯示答案
                         st.subheader("📝 答案")
                         st.write(answer["answer"])
-                        
-                        # 顯示增強答案（如果有的話）
-                        if "enhanced_answer" in answer:
-                            st.subheader("🚀 代理協作優化答案")
-                            st.write(answer["enhanced_answer"])
                         
                         # 顯示源節點信息
                         if answer.get("source_nodes"):
@@ -212,7 +218,7 @@ def main():
                                     if source.get('metadata'):
                                         st.write(f"**元數據**: {source['metadata']}")
                                     if source.get('score'):
-                                        st.write(f"**相關性分數**: {source['score']:.3f}")
+                                        st.write(f"**相關性分數**: {source.get('score', 0):.3f}")
                         
                         # 保存到對話歷史
                         if 'chat_history' not in st.session_state:
@@ -225,7 +231,8 @@ def main():
                         })
                         
                     else:
-                        st.error(f"❌ 回答失敗: {answer['error']}")
+                        error_msg = answer.get('error', '未知錯誤')
+                        st.error(f"❌ 回答失敗: {error_msg}")
             
             # 顯示對話歷史
             if 'chat_history' in st.session_state and st.session_state.chat_history:
@@ -233,7 +240,10 @@ def main():
                 for i, chat in enumerate(reversed(st.session_state.chat_history)):
                     with st.expander(f"對話 {len(st.session_state.chat_history) - i}"):
                         st.markdown(f"**問題**: {chat['question']}")
-                        st.markdown(f"**答案**: {chat['answer']['answer']}")
+                        if isinstance(chat['answer'], dict) and 'answer' in chat['answer']:
+                            st.markdown(f"**答案**: {chat['answer']['answer']}")
+                        else:
+                            st.markdown(f"**答案**: {str(chat['answer'])}")
                         st.caption(f"時間: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(chat['timestamp']))}")
     
     # 底部信息

@@ -81,3 +81,4 @@ htmlcov/
 # 備份文件
 *.bak
 *.backup
+data

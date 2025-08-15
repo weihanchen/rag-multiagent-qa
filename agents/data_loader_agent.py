@@ -2,8 +2,9 @@ import autogen
 from typing import List, Dict, Any
 import os
 from pathlib import Path
-from llama_index import SimpleDirectoryReader, Document
-from llama_index.node_parser import SimpleNodeParser
+from llama_index.core.readers import SimpleDirectoryReader
+from llama_index.core import Document
+from llama_index.core.node_parser import SimpleNodeParser
 from config import Config
 
 class DataLoaderAgent:

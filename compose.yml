@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Ollama 本地模型服務
   ollama:

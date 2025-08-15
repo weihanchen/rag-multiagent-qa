@@ -9,11 +9,11 @@ class Config:
     
     # Ollama 本地模型配置 - 自動檢測Docker環境
     OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
-    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama2:7b")
+    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma:2b")
     
     # 向量資料庫配置
     VECTOR_STORE_TYPE = os.getenv("VECTOR_STORE_TYPE", "faiss")
-    VECTOR_STORE_PATH = os.getenv("VECTOR_STORE_PATH", "./vector_store")
+    VECTOR_STORE_PATH = os.getenv("VECTOR_STORE_PATH", "./data/vector_store")
     
     # 系統配置
     MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2000"))

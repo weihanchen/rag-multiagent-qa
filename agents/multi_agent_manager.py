@@ -51,12 +51,12 @@ class MultiAgentManager:
             # 使用DataLoader代理處理文檔
             documents = self.data_loader_agent.load_documents(file_paths)
             if not documents:
-                return {"error": "沒有成功載入的文檔"}
+                return {"success": False, "error": "沒有成功載入的文檔"}
             
             # 處理文檔並分割成chunks
             chunks = self.data_loader_agent.process_documents(documents)
             if not chunks:
-                return {"error": "文檔處理失敗"}
+                return {"success": False, "error": "文檔處理失敗"}
             
             # 使用QA代理創建向量索引
             self.qa_agent.create_index_from_chunks(chunks)
@@ -71,6 +71,7 @@ class MultiAgentManager:
             
         except Exception as e:
             return {
+                "success": False,
                 "error": f"處理文檔時發生錯誤：{str(e)}"
             }
     
@@ -79,20 +80,28 @@ class MultiAgentManager:
         try:
             if not self.qa_agent.query_engine:
                 return {
+                    "success": False,
                     "error": "查詢引擎未初始化，請先處理文檔"
                 }
             
             # 使用QA代理回答問題
             answer = self.qa_agent.query(question)
             
-            return {
-                "question": question,
-                "answer": answer,
-                "model_provider": "ollama"
-            }
+            # 如果QA代理返回成功，則包裝結果
+            if answer.get("success", False):
+                return {
+                    "success": True,
+                    "question": question,
+                    "answer": answer.get("answer", ""),
+                    "source_nodes": answer.get("source_nodes", []),
+                    "model_provider": "ollama"
+                }
+            else:
+                return answer  # 直接返回錯誤信息
             
         except Exception as e:
             return {
+                "success": False,
                 "error": f"回答問題時發生錯誤：{str(e)}"
             }
     

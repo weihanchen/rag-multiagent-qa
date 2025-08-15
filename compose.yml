@@ -50,6 +50,9 @@ services:
       - CHUNK_OVERLAP=100
       - ENABLE_HUMAN_INPUT=false
       - MAX_ITERATIONS=10
+      - REQUEST_TIMEOUT=180.0    # 請求超時時間
+      - LLM_TIMEOUT=180.0         # LLM 響應超時時間
+      - QUERY_TIMEOUT=180.0       # 查詢引擎超時時間
     depends_on:
       ollama:
         condition: service_healthy

@@ -22,9 +22,9 @@ class Config:
     CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "100"))
     
     # 超時配置
-    REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "120.0"))  # 請求超時時間（秒）
-    LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "90.0"))          # LLM 響應超時時間（秒）
-    QUERY_TIMEOUT = float(os.getenv("QUERY_TIMEOUT", "60.0"))      # 查詢引擎超時時間（秒）
+    REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "180.0"))  # 請求超時時間（秒）
+    LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "180.0"))          # LLM 響應超時時間（秒）
+    QUERY_TIMEOUT = float(os.getenv("QUERY_TIMEOUT", "180.0"))      # 查詢引擎超時時間（秒）
     
     # 代理配置
     ENABLE_HUMAN_INPUT = os.getenv("ENABLE_HUMAN_INPUT", "false").lower() == "true"

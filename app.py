@@ -186,12 +186,16 @@ def main():
     with col2:
         st.header("💬 智能問答")
         
-        # 檢查是否已處理文件
-        if not st.session_state.get('files_processed', False):
-            st.info("👆 請先上傳並處理文件")
-        else:
-            # 問答界面
-            question = st.text_input(
+        # 檢查向量索引是否已初始化
+        if 'agent_manager' in st.session_state:
+            status = st.session_state.agent_manager.get_system_status()
+            vector_index_status = status.get("vector_index", {}).get("status", "未初始化")
+            
+            if vector_index_status != "已初始化":
+                st.info("👆 請先上傳並處理文件")
+            else:
+                # 問答界面
+                question = st.text_input(
                 "請輸入您的問題：",
                 placeholder="例如：這份文檔的主要內容是什麼？",
                 help="系統會基於上傳的文檔內容回答您的問題"

@@ -5,6 +5,7 @@ from pathlib import Path
 from config import Config
 from .data_loader_agent import DataLoaderAgent
 from .qa_agent import QAAgent
+from logger_config import get_logger
 
 class MultiAgentManager:
     """多代理協作管理器 - 協調DataLoader和QA代理的工作"""
@@ -12,6 +13,9 @@ class MultiAgentManager:
     def __init__(self):
         self.config = Config()
         self.config.validate()
+        
+        # 初始化日誌記錄器
+        self.logger = get_logger(__name__)
         
         # 初始化代理
         self.data_loader_agent = DataLoaderAgent()
@@ -46,7 +50,7 @@ class MultiAgentManager:
     def process_documents(self, file_paths: List[str]) -> Dict[str, Any]:
         """處理文檔並建立向量索引"""
         try:
-            print(f"開始處理 {len(file_paths)} 個文檔...")
+            self.logger.info(f"開始處理 {len(file_paths)} 個文檔")
             
             # 使用DataLoader代理處理文檔
             documents = self.data_loader_agent.load_documents(file_paths)
@@ -138,22 +142,22 @@ class MultiAgentManager:
             if os.path.exists(self.config.VECTOR_STORE_PATH):
                 import shutil
                 shutil.rmtree(self.config.VECTOR_STORE_PATH)
-                print("向量索引已清除")
+                self.logger.info("向量索引已清除")
             
             # 重新初始化QA代理
             self.qa_agent = QAAgent(self.config.VECTOR_STORE_PATH)
             
-            print("系統已重置")
+            self.logger.info("系統已重置")
             
         except Exception as e:
-            print(f"重置系統時發生錯誤：{str(e)}")
+            self.logger.error(f"重置系統時發生錯誤：{str(e)}")
     
     def get_agent_conversation_history(self) -> List[Dict[str, Any]]:
         """獲取代理對話歷史"""
         try:
             return self.groupchat.messages
         except Exception as e:
-            print(f"獲取對話歷史時發生錯誤：{str(e)}")
+            self.logger.error(f"獲取對話歷史時發生錯誤：{str(e)}")
             return []
     
     def test_model_connection(self) -> Dict[str, Any]:

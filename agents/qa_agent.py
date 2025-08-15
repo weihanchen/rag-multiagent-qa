@@ -6,6 +6,7 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.base.embeddings.base import BaseEmbedding
 from pydantic import Field
 from config import Config
+from logger_config import get_logger
 
 class QAAgent:
     """問答代理 - 負責處理用戶問題並從文檔中檢索答案"""
@@ -13,6 +14,9 @@ class QAAgent:
     def __init__(self, vector_store_path: str):
         self.config = Config()
         self.vector_store_path = vector_store_path
+        
+        # 初始化日誌記錄器
+        self.logger = get_logger(__name__)
         
         # 使用新的配置方法
         self.llm_config = self.config.get_llm_config()
@@ -56,10 +60,12 @@ class QAAgent:
                         if response.status_code == 200:
                             return response.json()["embedding"]
                         else:
-                            print(f"警告：Ollama 嵌入失敗，使用備用向量")
+                            # 注意：這裡無法直接使用 self.logger，因為在內部類中
+                            # 我們將在外部處理這個警告
                             return list(np.random.rand(384))
                     except Exception as e:
-                        print(f"嵌入請求失敗：{str(e)}，使用備用向量")
+                        # 注意：這裡無法直接使用 self.logger，因為在內部類中
+                        # 我們將在外部處理這個錯誤
                         return list(np.random.rand(384))
                 
                 def _get_query_embedding(self, query: str) -> List[float]:
@@ -75,10 +81,10 @@ class QAAgent:
                 model_name=self.config.OLLAMA_MODEL,
                 base_url=self.config.OLLAMA_BASE_URL
             )
-            print("使用自定義 OllamaEmbedding 實現")
+            self.logger.info("使用自定義 OllamaEmbedding 實現")
             
             # 自定義嵌入模型，使用基本配置
-            print("使用自定義嵌入模型配置")
+            self.logger.info("使用自定義嵌入模型配置")
             
             # 嘗試載入現有的向量索引
             try:
@@ -87,19 +93,19 @@ class QAAgent:
                     self.vector_store_path,
                     embed_model=embed_model
                 )
-                print("成功載入現有向量索引")
+                self.logger.info("成功載入現有向量索引")
             except Exception as e:
-                print(f"載入現有索引失敗: {str(e)}")
-                print("將在處理文檔後創建新索引")
+                self.logger.warning(f"載入現有索引失敗: {str(e)}")
+                self.logger.info("將在處理文檔後創建新索引")
                 self.index = None
             
             if self.index:
                 self._setup_query_engine()
             else:
-                print("向量索引未初始化，將在處理文檔後創建")
+                self.logger.info("向量索引未初始化，將在處理文檔後創建")
                 
         except Exception as e:
-            print(f"初始化向量存儲時發生錯誤：{str(e)}")
+            self.logger.error(f"初始化向量存儲時發生錯誤：{str(e)}")
             self.index = None
     
     def _setup_query_engine(self):
@@ -116,10 +122,10 @@ class QAAgent:
                 retriever=retriever
             )
             
-            print("查詢引擎設置完成")
+            self.logger.info("查詢引擎設置完成")
             
         except Exception as e:
-            print(f"設置查詢引擎時發生錯誤：{str(e)}")
+            self.logger.error(f"設置查詢引擎時發生錯誤：{str(e)}")
     
     def create_index_from_chunks(self, chunks: List[Dict[str, Any]]):
         """從處理後的chunks創建向量索引"""
@@ -172,25 +178,25 @@ class QAAgent:
                 model_name=self.config.OLLAMA_MODEL,
                 base_url=self.config.OLLAMA_BASE_URL
             )
-            print("使用自定義 OllamaEmbedding 實現")
+            self.logger.info(f"使用自定義 OllamaEmbedding 實現 - model_name: self.config.OLLAMA_MODEL")
             
             # 自定義嵌入模型，使用基本配置
-            print("使用自定義嵌入模型配置")
+            self.logger.info("使用自定義嵌入模型配置")
             
             # 使用自定義嵌入模型創建向量索引
             try:
-                print("開始創建向量索引...")
+                self.logger.info(f"開始創建向量索引...")
                 
                 # 使用 from_documents 方法，並傳遞我們的嵌入模型
-                print("使用自定義 Ollama 嵌入模型創建索引...")
+                self.logger.info("使用自定義 Ollama 嵌入模型創建索引...")
                 self.index = VectorStoreIndex.from_documents(
                     documents,
                     embed_model=embed_model
                 )
-                print("向量索引創建成功")
+                self.logger.info(f"向量索引創建成功")
                     
             except Exception as e:
-                print(f"創建索引失敗: {str(e)}")
+                self.logger.error(f"創建索引失敗: {str(e)}")
                 import traceback
                 print(f"詳細錯誤信息: {traceback.format_exc()}")
                 

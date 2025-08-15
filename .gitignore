@@ -49,6 +49,7 @@ workspace/
 # 日誌文件
 *.log
 logs/
+data/logs/
 
 # IDE
 .vscode/

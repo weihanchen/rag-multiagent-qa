@@ -6,6 +6,7 @@ from llama_index.core.readers import SimpleDirectoryReader
 from llama_index.core import Document
 from llama_index.core.node_parser import SimpleNodeParser
 from config import Config
+from logger_config import get_logger
 
 class DataLoaderAgent:
     """數據載入代理 - 負責讀取和處理PDF/Markdown文件"""
@@ -14,6 +15,9 @@ class DataLoaderAgent:
         self.config = Config()
         # 使用新的配置方法
         self.llm_config = self.config.get_llm_config()
+        
+        # 初始化日誌記錄器
+        self.logger = get_logger(__name__)
         
         # 創建AutoGen代理
         self.agent = autogen.AssistantAgent(
@@ -34,12 +38,12 @@ class DataLoaderAgent:
         
         for file_path in file_paths:
             if not os.path.exists(file_path):
-                print(f"警告：文件 {file_path} 不存在")
+                self.logger.warning(f"文件 {file_path} 不存在")
                 continue
                 
             file_ext = Path(file_path).suffix.lower()
             if file_ext not in self.config.SUPPORTED_FORMATS:
-                print(f"警告：不支持的文件格式 {file_ext}")
+                self.logger.warning(f"不支持的文件格式 {file_ext}")
                 continue
             
             try:
@@ -47,10 +51,10 @@ class DataLoaderAgent:
                 reader = SimpleDirectoryReader(input_files=[file_path])
                 docs = reader.load_data()
                 documents.extend(docs)
-                print(f"成功載入文件：{file_path}")
+                self.logger.info(f"成功載入文件：{file_path}")
                 
             except Exception as e:
-                print(f"載入文件 {file_path} 時發生錯誤：{str(e)}")
+                self.logger.error(f"載入文件 {file_path} 時發生錯誤：{str(e)}")
         
         return documents
     
@@ -76,11 +80,11 @@ class DataLoaderAgent:
                 }
                 processed_chunks.append(chunk_data)
             
-            print(f"成功處理 {len(documents)} 個文檔，生成 {len(processed_chunks)} 個chunks")
+            self.logger.info(f"成功處理 {len(documents)} 個文檔，生成 {len(processed_chunks)} 個chunks")
             return processed_chunks
             
         except Exception as e:
-            print(f"處理文檔時發生錯誤：{str(e)}")
+            self.logger.error(f"處理文檔時發生錯誤：{str(e)}")
             return []
     
     def get_agent(self):
